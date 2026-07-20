@@ -3,26 +3,32 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"payment/conf"
+	"payment/internal/logger"
 	"syscall"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func main() {
 	cnf := conf.NewConf()
 	cnf = conf.Parse(cnf)
 
-	fmt.Println(cnf)
+	logger, err := logger.NewLogger()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to init logger: %v", err))
+	}
+	defer logger.Zaplogger.Sync()
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w,"Server health")
+		fmt.Fprintf(w, "Server health")
 	})
 
 	server := &http.Server{
@@ -35,9 +41,14 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Server started: Port - %s", cnf.Server.Addr)
+		logger.Zaplogger.Info("Server started",
+			zap.String("port", cnf.Server.Addr),
+		)
+
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %v", err)
+			logger.Zaplogger.Fatal("Server failed start",
+				zap.Error(err),
+			)
 		}
 	}()
 
@@ -49,13 +60,15 @@ func main() {
 	)
 	<-q
 
-	log.Println("Server shutdown")
+	logger.Zaplogger.Info("Server shutdown")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server shutdown failed: %v", err)
+		logger.Zaplogger.Fatal("Server shutdown failed",
+			zap.Error(err),
+		)
 	}
 
-	log.Println("Server closed")
+	logger.Zaplogger.Info("Server Closed")
 }
