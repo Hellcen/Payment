@@ -22,13 +22,13 @@ func OpenDB(cnf *conf.Conf, logger *logger.Logger) (*sql.DB, error) {
 			return sql, nil
 		}
 
-		logger.Zaplogger.Info("[DB] connection attempt %d/%d failed: %v\n",
+		logger.Zaplogger.Info("Connection attempt failed",
 			zap.Int("Id", i+1),
 			zap.Int("Retries", retries),
 			zap.Error(err),
 		)
 
-		if i < -1 {
+		if i < retries - 1 {
             time.Sleep(3 * time.Second)
         }
 	}
