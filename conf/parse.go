@@ -1,22 +1,18 @@
 package conf
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 )
 
-func Parse(cnf *Conf) *Conf {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error: File .env not found")
+func Parse(cnf *Conf) (*Conf, error) {
+	_ = godotenv.Load()
+
+	if err := cleanenv.ReadEnv(cnf); err != nil {
+		return nil, fmt.Errorf("File .env failed to parse: %v", err)
 	}
 
-	err = cleanenv.ReadEnv(cnf)
-	if err != nil {
-		log.Fatalf("File .env failed to parse: %v", err)
-	}
-
-	return cnf
+	return cnf, nil
 }

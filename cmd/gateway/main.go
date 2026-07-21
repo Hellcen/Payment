@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"payment/conf"
+	"payment/internal/database"
 	"payment/internal/logger"
 	"syscall"
 	"time"
@@ -15,14 +16,26 @@ import (
 )
 
 func main() {
-	cnf := conf.NewConf()
-	cnf = conf.Parse(cnf)
-
+	cnf, err := conf.NewConf()
 	logger, err := logger.NewLogger()
+
 	if err != nil {
 		panic(fmt.Sprintf("Failed to init logger: %v", err))
 	}
 	defer logger.Zaplogger.Sync()
+
+	logger.Zaplogger.Info("Config",
+		zap.Object("cnf", cnf),
+	)
+
+	db, err := database.OpenDB(cnf, logger)
+	if err != nil {
+		logger.Zaplogger.Error("DB init failed",
+			zap.Error(err),
+		)
+		logger.Zaplogger.Fatal("DB no connection")
+	}
+	defer db.Close()
 
 	mux := http.NewServeMux()
 
@@ -53,6 +66,7 @@ func main() {
 	}()
 
 	q := make(chan os.Signal, 1)
+	defer signal.Stop(q)
 	signal.Notify(q,
 		syscall.SIGTERM,
 		syscall.SIGINT,
