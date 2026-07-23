@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"payment/conf"
-	"payment/internal/logger"
+	"payment/RegistrationService/conf"
+	"payment/pkg/logger"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
 
@@ -48,14 +49,14 @@ func DSN(cnf *conf.Conf) string {
 }
 
 func connection(cnf *conf.Conf) (*sql.DB, error) {
-	sql, err := sql.Open("pqx", DSN(cnf))
+	sql, err := sql.Open("pgx", DSN(cnf))
 	if err != nil {
 		return nil, err
 	}
 
 	sql.SetMaxOpenConns(cnf.DB.MaxOpenConnect)
 	sql.SetMaxIdleConns(cnf.DB.MaxIdleConnect)
-	sql.SetConnMaxLifetime(time.Duration(cnf.DB.ConnMaxExpired) * time.Second)
+	sql.SetConnMaxLifetime(cnf.DB.ConnMaxExpired * time.Second)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

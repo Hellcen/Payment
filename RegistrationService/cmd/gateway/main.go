@@ -6,9 +6,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"payment/conf"
-	"payment/internal/database"
-	"payment/internal/logger"
+	"payment/RegistrationService/conf"
+	"payment/RegistrationService/internal/adapter"
+	"payment/RegistrationService/internal/database"
+	"payment/RegistrationService/internal/handler"
+	"payment/RegistrationService/internal/repository/postgreSQL"
+	"payment/RegistrationService/internal/service"
+	"payment/pkg/logger"
+
 	"syscall"
 	"time"
 
@@ -18,6 +23,7 @@ import (
 func main() {
 	cnf, err := conf.NewConf()
 	logger, err := logger.NewLogger()
+	goValidator := adapter.New()
 
 	if err != nil {
 		panic(fmt.Sprintf("Failed to init logger: %v", err))
@@ -37,12 +43,22 @@ func main() {
 	}
 	defer db.Close()
 
+	logger.Zaplogger.Info("Database connected",
+		zap.Int("port", cnf.DB.Port),
+	)
+
+	postgresRep := postgresql.NewRepository(db)
+	userRep := service.NewAuthService(postgresRep)
+	authHandler := handler.NewAuthHandler(userRep, *logger, goValidator)
+
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+	mux.HandleFunc("GET /api/v1/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
 		fmt.Fprintf(w, "Server health")
 	})
+
+	mux.HandleFunc("POST /api/v1/register", authHandler.RegisterHandler)
 
 	server := &http.Server{
 		Addr:              cnf.Server.Addr,

@@ -12,7 +12,7 @@ type Conf struct {
 }
 
 type ServerConf struct {
-	Addr              string        `env:"ADDR" env-default:"8080"`
+	Addr              string        `env:"ADDR" env-default:":8080"`
 	ReadTimeout       time.Duration `env:"READ_TIMEOUT" env-default:"20s"`
 	ReadHeaderTimeout time.Duration `env:"READ_HEADER_TIMEOUT" env-default:"20s"`
 	WriteTimeout      time.Duration `env:"WRITE_TIMEOUT" env-default:"30s"`

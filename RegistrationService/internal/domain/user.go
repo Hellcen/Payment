@@ -1,4 +1,4 @@
-package models
+package domain
 
 import (
 	"time"
@@ -7,8 +7,10 @@ import (
 )
 
 type User struct {
-	Id           uuid.UUID
+	ID           uuid.UUID
+	PublicID     uuid.UUID
 	Username     string
+	Email        string
 	Number       string
 	PasswordHash string
 	CreatedAt    time.Time
